@@ -1,13 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   ChartNoAxesCombined,
@@ -18,25 +10,35 @@ import {
   GraduationCap,
   Menu,
   X,
-  CheckCircle2,
+  Target,
+  RotateCcw,
+  NotebookPen,
+  FileSearch,
+  MoreHorizontal,
 } from "lucide-react";
 import { useStudy } from "@/lib/store";
-import { dayNames } from "@/lib/data";
+import { Dashboard, type View } from "@/components/dashboard";
+import { Goals } from "@/components/goals";
+import { Reviews } from "@/components/reviews";
+import { Mistakes } from "@/components/mistakes";
+import { Editais } from "@/components/editais";
+import { Statistics } from "@/components/statistics";
 import { StudyTimer } from "@/components/study-timer";
 import { Roadmap } from "@/components/roadmap";
 import { Planner } from "@/components/planner";
 import { BackupPanel } from "@/components/backup-panel";
-type View = "dashboard" | "roadmap" | "agenda" | "timer" | "backup";
 const menu: [View, string, typeof BookOpen][] = [
   ["dashboard", "Visão geral", ChartNoAxesCombined],
   ["roadmap", "Roadmap", Route],
   ["agenda", "Planejamento", CalendarDays],
   ["timer", "Cronômetro", Clock3],
+  ["reviews", "Revisões", RotateCcw],
+  ["mistakes", "Caderno de erros", NotebookPen],
+  ["goals", "Metas", Target],
+  ["statistics", "Estatísticas", ChartNoAxesCombined],
+  ["editais", "Editais", FileSearch],
   ["backup", "Backup", Download],
 ];
-function minutesText(n: number) {
-  return `${Math.floor(n / 60)}h ${String(n % 60).padStart(2, "0")}min`;
-}
 export default function Home() {
   const s = useStudy();
   const navRef = useRef<HTMLElement>(null);
@@ -81,33 +83,34 @@ export default function Home() {
       previous?.focus();
     };
   }, [mobile]);
-  const totalMinutes = s.sessions.reduce((a, b) => a + b.minutes, 0);
   const uniqueTopics = Array.from(
     new Map(s.topics.map((t) => [t.sharedId || t.id, t])).values(),
   );
-  const done = uniqueTopics.filter((t) => t.done).length;
   const percent = uniqueTopics.length
-    ? Math.round((done / uniqueTopics.length) * 100)
+    ? Math.round(
+        (uniqueTopics.filter((t) => t.done).length / uniqueTopics.length) * 100,
+      )
     : 0;
-  const taskDone = s.tasks.filter((t) => t.done).length;
-  const week = useMemo(
-    () =>
-      Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setHours(0, 0, 0, 0);
-        date.setDate(date.getDate() - (6 - i));
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-        return {
-          day: dayNames[date.getDay()].slice(0, 3),
-          minutes: s.sessions
-            .filter((x) => localDate(new Date(x.date)) === key)
-            .reduce((a, x) => a + x.minutes, 0),
-        };
-      }),
-    [s.sessions],
-  );
+  useEffect(() => {
+    function readView() {
+      const hash = window.location.hash.slice(1);
+      if (menu.some(([id]) => id === hash)) setView(hash as View);
+      else setView("dashboard");
+    }
+    readView();
+    window.addEventListener("hashchange", readView);
+    function sync(event: StorageEvent) {
+      if (event.key === "aprovape-v1") void useStudy.persist.rehydrate();
+    }
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("hashchange", readView);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
   const navigate = (v: View) => {
     setView(v);
+    window.location.hash = v;
     setMobile(false);
   };
   if (!s.hydrated)
@@ -118,9 +121,22 @@ export default function Home() {
     );
   return (
     <div className="min-h-screen lg:flex">
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById("main-content")?.focus();
+        }}
+      >
+        Pular para o conteúdo
+      </a>
       <aside
         ref={navRef}
-        className={`${mobile ? "fixed inset-0 z-50 flex bg-[#080f1e]" : "hidden"} lg:flex lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 flex-col border-r border-[#263650] p-5`}
+        role={mobile ? "dialog" : undefined}
+        aria-modal={mobile ? true : undefined}
+        aria-label={mobile ? "Menu principal" : undefined}
+        className={`${mobile ? "fixed inset-0 z-50 flex bg-[#080f1e]" : "hidden"} lg:flex lg:sticky lg:top-0 lg:h-screen lg:w-64 overflow-y-auto lg:shrink-0 flex-col border-r border-[#263650] p-5`}
       >
         <div className="flex items-center justify-between mb-10">
           <div className="flex gap-3 items-center">
@@ -171,7 +187,13 @@ export default function Home() {
           </p>
         </div>
       </aside>
-      <main className="flex-1 min-w-0">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        inert={mobile ? true : undefined}
+        aria-hidden={mobile ? true : undefined}
+        className="flex-1 min-w-0 pb-24 lg:pb-0"
+      >
         <header className="sticky top-0 z-30 bg-[#080f1e]/95 backdrop-blur border-b border-[#263650] px-5 lg:px-9 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -201,127 +223,40 @@ export default function Home() {
               {s.storageError}
             </p>
           )}
-          {view === "dashboard" && (
-            <>
-              <section className="rounded-3xl p-6 lg:p-9 bg-gradient-to-r from-blue-700 to-[#172d58]">
-                <p className="text-blue-100 text-sm mb-2">
-                  Seu espaço de preparação
-                </p>
-                <h2 className="text-2xl lg:text-4xl font-extrabold mb-3">
-                  Sua aprovação começa com constância.
-                </h2>
-                <p className="text-blue-100 max-w-xl mb-5">
-                  Planeje, estude e acompanhe sua evolução em um único lugar.
-                </p>
-                <button
-                  className="bg-white text-blue-800 font-bold rounded-xl px-5 py-3"
-                  onClick={() => navigate("roadmap")}
-                >
-                  Abrir roadmap →
-                </button>
-              </section>
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-                {[
-                  ["Horas estudadas", minutesText(totalMinutes), Clock3],
-                  [
-                    "Tópicos concluídos",
-                    `${done}/${uniqueTopics.length}`,
-                    BookOpen,
-                  ],
-                  [
-                    "Tarefas concluídas",
-                    `${taskDone}/${s.tasks.length}`,
-                    CheckCircle2,
-                  ],
-                  ["Progresso geral", `${percent}%`, Route],
-                ].map(([label, value, Icon]) => {
-                  const I = Icon as typeof Clock3;
-                  return (
-                    <div className="panel p-4 lg:p-5" key={label as string}>
-                      <I className="text-blue-400 mb-3" />
-                      <div className="text-xl lg:text-2xl font-bold">
-                        {value as string}
-                      </div>
-                      <p className="muted text-xs mt-1">{label as string}</p>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="grid xl:grid-cols-2 gap-4">
-                <div className="panel p-5">
-                  <h3 className="font-bold mb-5">
-                    Tempo de estudo • últimos 7 dias
-                  </h3>
-                  {!s.sessions.length && (
-                    <p className="muted text-sm mb-3">
-                      Registre sua primeira sessão para acompanhar sua evolução.
-                    </p>
-                  )}
-                  <div className="h-60">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={week}>
-                        <XAxis dataKey="day" stroke="#93a7c5" />
-                        <YAxis stroke="#93a7c5" />
-                        <Tooltip
-                          contentStyle={{
-                            background: "#111e33",
-                            border: "1px solid #34445f",
-                          }}
-                        />
-                        <Bar
-                          dataKey="minutes"
-                          name="Minutos"
-                          fill="#4388ff"
-                          radius={[6, 6, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-                <div className="panel p-5">
-                  <h3 className="font-bold mb-4">Próximas tarefas</h3>
-                  <div className="space-y-3">
-                    {s.tasks
-                      .filter((t) => !t.done)
-                      .slice(0, 5)
-                      .map((t) => (
-                        <label
-                          key={t.id}
-                          className="flex items-center gap-3 p-3 bg-[#0c1729] rounded-xl"
-                        >
-                          <input
-                            type="checkbox"
-                            aria-label={`Concluir ${t.title}`}
-                            checked={t.done}
-                            onChange={() => s.toggleTask(t.id)}
-                          />
-                          <span className="text-sm">{t.title}</span>
-                        </label>
-                      ))}
-                    {!s.tasks.some((t) => !t.done) && (
-                      <p className="muted">Nenhuma tarefa pendente.</p>
-                    )}
-                  </div>
-                  <button
-                    className="text-blue-300 text-sm mt-5"
-                    onClick={() => navigate("agenda")}
-                  >
-                    Ver planejamento →
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+          {view === "dashboard" && <Dashboard navigate={navigate} />}
           {view === "roadmap" && <Roadmap />}
           {view === "agenda" && <Planner />}
           {view === "timer" && <StudyTimer />}
+          {view === "goals" && <Goals />}
+          {view === "reviews" && <Reviews />}
+          {view === "mistakes" && <Mistakes />}
+          {view === "editais" && <Editais />}
+          {view === "statistics" && <Statistics />}
           {view === "backup" && <BackupPanel />}
         </div>
       </main>
+      <nav
+        inert={mobile ? true : undefined}
+        aria-hidden={mobile ? true : undefined}
+        aria-label="Acesso rápido"
+        className="mobile-tabs lg:hidden"
+      >
+        {menu.slice(0, 4).map(([id, label, Icon]) => (
+          <button
+            key={id}
+            aria-current={view === id ? "page" : undefined}
+            className={view === id ? "active" : ""}
+            onClick={() => navigate(id)}
+          >
+            <Icon size={20} />
+            <span>{label === "Visão geral" ? "Início" : label}</span>
+          </button>
+        ))}
+        <button aria-label="Mais opções" onClick={() => setMobile(true)}>
+          <MoreHorizontal size={20} />
+          <span>Mais</span>
+        </button>
+      </nav>
     </div>
   );
-}
-
-function localDate(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }

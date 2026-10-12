@@ -12,11 +12,23 @@ export function BackupPanel() {
       tasks: s.tasks,
       topics: s.topics,
       sessions: s.sessions,
+      preferences: s.preferences,
+      reviews: s.reviews,
+      mistakes: s.mistakes,
     };
     const url = URL.createObjectURL(
-      new Blob([JSON.stringify({ version: 1, data }, null, 2)], {
-        type: "application/json",
-      }),
+      new Blob(
+        [
+          JSON.stringify(
+            { version: 2, exportedAt: new Date().toISOString(), data },
+            null,
+            2,
+          ),
+        ],
+        {
+          type: "application/json",
+        },
+      ),
     );
     const a = document.createElement("a");
     a.href = url;
@@ -29,7 +41,11 @@ export function BackupPanel() {
     try {
       if (file.size > 10 * 1024 * 1024) throw Error("Arquivo muito grande");
       const d = parseBackup(JSON.parse(await file.text()));
-      if (confirm("Substituir todos os dados atuais pelo backup?"))
+      if (
+        confirm(
+          "Substituir tarefas, assuntos, sessões, metas, revisões e caderno de erros pelo backup? A sessão em andamento será reiniciada.",
+        )
+      )
         s.restore(d);
     } catch {
       alert("Arquivo de backup inválido.");
@@ -44,6 +60,12 @@ export function BackupPanel() {
         As informações ficam neste navegador. Faça backup regularmente: limpar
         os dados do navegador ou trocar de aparelho pode apagar seu progresso.
       </p>
+      <div className="grid grid-cols-2 gap-3 text-sm muted">
+        <p>{s.topics.length} assuntos</p>
+        <p>{s.sessions.length} sessões</p>
+        <p>{s.reviews.length} revisões</p>
+        <p>{s.mistakes.length} erros registrados</p>
+      </div>
       <button className="btn flex gap-2 items-center" onClick={exportBackup}>
         <Download size={18} />
         Baixar backup JSON
@@ -68,7 +90,7 @@ export function BackupPanel() {
         onClick={() => {
           if (
             confirm(
-              "Apagar todas as tarefas, tópicos e sessões? Exporte um backup antes de continuar.",
+              "Apagar tarefas, tópicos, sessões, metas, revisões e caderno de erros? Exporte um backup antes de continuar.",
             )
           )
             s.reset();

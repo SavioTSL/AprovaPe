@@ -3,9 +3,12 @@ import { useState } from "react";
 import { BookOpen, Plus, Trash2 } from "lucide-react";
 import { exams, subjects } from "@/lib/data";
 import { useStudy } from "@/lib/store";
+import { TopicNotes } from "./topic-notes";
 export function Roadmap() {
   const s = useStudy();
-  const [exam, setExam] = useState(exams[0]);
+  const exam = s.preferences.exam;
+  const [query, setQuery] = useState("");
+  const [pendingOnly, setPendingOnly] = useState(false);
   const [topicTitle, setTopicTitle] = useState("");
   const [topicSubject, setTopicSubject] = useState(subjects[0]);
   return (
@@ -16,13 +19,16 @@ export function Roadmap() {
         <p className="muted text-sm mb-4">
           Construa sua trilha a partir do edital oficial. Nenhum conteúdo
           programático foi pré-preenchido sem verificação. As disciplinas abaixo
-          são categorias livres de organização.
+          são categorias livres de organização. Use a área Editais para
+          consultar fontes e importar assuntos em lote.
         </p>
         <select
           className="field max-w-md"
           aria-label="Concurso"
           value={exam}
-          onChange={(e) => setExam(e.target.value)}
+          onChange={(e) =>
+            s.updatePreferences({ ...s.preferences, exam: e.target.value })
+          }
         >
           {exams.map((x) => (
             <option key={x}>{x}</option>
@@ -39,67 +45,97 @@ export function Roadmap() {
           </p>
         </div>
       )}
+      <div className="flex flex-wrap gap-4">
+        <input
+          className="field flex-1"
+          aria-label="Buscar no roadmap"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar disciplina ou assunto…"
+        />
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={pendingOnly}
+            onChange={(e) => setPendingOnly(e.target.checked)}
+          />
+          Só pendentes
+        </label>
+      </div>
       <div className="grid md:grid-cols-2 gap-4">
         {Array.from(
           new Set(
             s.topics.filter((t) => t.exam === exam).map((t) => t.subject),
           ),
         ).map((sub) => {
-          const items = s.topics.filter(
+          const subjectTopics = s.topics.filter(
             (t) => t.exam === exam && t.subject === sub,
           );
-          const count = items.filter((t) => t.done).length;
+          const items = subjectTopics.filter(
+            (t) =>
+              t.exam === exam &&
+              t.subject === sub &&
+              (!pendingOnly || !t.done) &&
+              `${t.title} ${t.subject}`
+                .toLowerCase()
+                .includes(query.toLowerCase()),
+          );
+          if (!items.length) return null;
+          const count = subjectTopics.filter((t) => t.done).length;
           return (
             <section className="panel p-5" key={sub}>
               <div className="flex justify-between gap-3 mb-3">
                 <h3 className="font-bold">{sub}</h3>
                 <span className="muted text-sm">
-                  {count}/{items.length}
+                  {count}/{subjectTopics.length}
                 </span>
               </div>
               <div className="h-2 bg-slate-700 rounded-full mb-5">
                 <div
                   className="h-full bg-blue-500 rounded-full"
-                  style={{ width: `${(count / items.length) * 100}%` }}
+                  style={{ width: `${(count / subjectTopics.length) * 100}%` }}
                 />
               </div>
               <div className="space-y-2">
                 {items.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex gap-2 items-center bg-[#0c1729] p-3 rounded-xl"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={t.done}
-                      onChange={() => s.toggleTopic(t.id)}
-                      aria-label={`Concluir ${t.title}`}
-                    />
-                    <span
-                      className={`flex-1 text-sm ${t.done ? "line-through muted" : ""}`}
-                    >
-                      {t.title}
-                    </span>
-                    <select
-                      aria-label={`Compartilhar ${t.title} com outro concurso`}
-                      className="share-select"
-                      value=""
-                      onChange={(e) => s.shareTopic(t.id, e.target.value)}
-                    >
-                      <option value="">Compartilhar</option>
-                      {exams
-                        .filter((x) => x !== exam)
-                        .map((x) => (
-                          <option key={x}>{x}</option>
-                        ))}
-                    </select>
-                    <button
-                      aria-label="Excluir tópico"
-                      className="muted"
-                      onClick={() => s.removeTopic(t.id)}
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                  <div key={t.id} className="topic-item">
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="checkbox"
+                        checked={t.done}
+                        onChange={() => s.toggleTopic(t.id)}
+                        aria-label={`Concluir ${t.title}`}
+                      />
+                      <span
+                        className={`flex-1 text-sm ${t.done ? "line-through muted" : ""}`}
+                      >
+                        {t.title}
+                      </span>
+                      <select
+                        aria-label={`Compartilhar ${t.title} com outro concurso`}
+                        className="share-select"
+                        value=""
+                        onChange={(e) => s.shareTopic(t.id, e.target.value)}
+                      >
+                        <option value="">Compartilhar</option>
+                        {exams
+                          .filter((x) => x !== exam)
+                          .map((x) => (
+                            <option key={x}>{x}</option>
+                          ))}
+                      </select>
+                      <button
+                        aria-label="Excluir tópico"
+                        className="muted"
+                        onClick={() => {
+                          if (confirm("Excluir este tópico e suas revisões?"))
+                            s.removeTopic(t.id);
+                        }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                    <TopicNotes topic={t} />
                   </div>
                 ))}
               </div>

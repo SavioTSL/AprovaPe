@@ -1,10 +1,29 @@
-# AprovaPE — Etapa 1
+# AprovaPE — Etapa 2
 
-Central pessoal de estudos com Next.js App Router, React, TypeScript, Tailwind CSS, Zustand e Recharts. Baseada no código enviado em `AprovaPE_Etapa1.zip`.
+Central pessoal de preparação para concursos de Pernambuco. Next.js App Router, React, TypeScript, Tailwind CSS, Zustand e Recharts. Evolução do projeto enviado em `AprovaPE_Etapa1.zip`, com compatibilidade para dados da primeira etapa.
 
-## Executar
+## Executar no Windows
 
-Use Node.js 24 e npm (Node 22.18+ também suporta o runner dos testes).
+Use Node.js 24 e npm. No PowerShell, dentro da pasta clonada:
+
+```powershell
+git pull origin main
+npm ci
+npm run dev
+```
+
+Para uma instalação nova:
+
+```powershell
+git clone https://github.com/SavioTSL/AprovaPe.git
+cd AprovaPe
+npm ci
+npm run dev
+```
+
+A aplicação usa a porta 3000. Não precisa de Apache, MySQL ou Laragon. Não há credenciais obrigatórias nesta etapa.
+
+## Executar no ambiente de nuvem
 
 ```bash
 cd /workspace/AprovaPe
@@ -12,14 +31,46 @@ npm ci --cache /workspace/.npm-cache
 npm run dev -- --hostname 0.0.0.0
 ```
 
-A aplicação usa a porta 3000. Para produção:
+Para produção:
 
 ```bash
 npm run build
 npm run start -- --hostname 0.0.0.0
 ```
 
-## Verificações
+## Fluxo de preparação
+
+1. **Editais:** escolha o concurso para consultar links públicos nos portais oficiais e conferir cargo, ano, documento de abertura e retificações.
+2. **Importação em lote:** organize o conteúdo conferido em linhas `Disciplina | Assunto`. A prévia mostra o que será adicionado; assuntos existentes são preservados e duplicados são ignorados. Uma referência oficial opcional é salva nas anotações dos novos assuntos.
+3. **Metas:** defina concurso principal, metas diária/semanal, dias disponíveis, tempo diário e tamanho dos blocos. As metas iniciais (60 min/dia, 300 min/semana) são sugestões configuráveis, não estatísticas de estudo.
+4. **Planejamento:** gere blocos para os próximos sete dias. O plano considera somente assuntos pendentes do concurso principal, prioriza disciplinas com menos tempo registrado e distribui os assuntos em ciclos. Gerar novamente não duplica blocos. Tarefas manuais antigas são preservadas, não têm data e podem ter o checklist reiniciado separadamente.
+5. **Cronômetro:** estude e registre minutos completos. Também é possível registrar estudos feitos fora da plataforma, inclusive em dias anteriores, sem interromper o cronômetro. Sessões incorretas podem ser excluídas após confirmação.
+6. **Roadmap:** conclua assuntos, compartilhe entre concursos, filtre e salve anotações. Agende revisões de assuntos estudados.
+7. **Revisões:** a primeira revisão é agendada para o dia seguinte. Ao lembrar, os próximos intervalos são 3, 7, 14, 30 e 60 dias. Ao esquecer, o intervalo volta a um dia. As próximas revisões podem ser consultadas, mas só as que chegaram à data podem ser concluídas.
+8. **Caderno de erros:** registre a dificuldade e sua explicação, busque registros e marque os assuntos dominados.
+9. **Estatísticas e backup:** acompanhe tempo por disciplina/período, constância e metas; exporte sessões CSV e faça backup JSON regularmente.
+
+## Limites da consulta de editais
+
+A API `/api/editais?exam=...` consulta páginas públicas de portais oficiais da SDS/PE e das bancas AOCP ou Cebraspe. As requisições têm prazo e tamanho limitados, usam destinos fixos e não seguem redirecionamentos arbitrários. A descoberta aceita apenas links HTTPS de domínios oficiais conhecidos.
+
+Essa consulta **não é um buscador completo**, não verifica se o edital é o mais recente e pode não encontrar documentos em páginas internas ou carregadas por JavaScript. Resultados são candidatos para conferência, não conteúdo automaticamente aprovado. Falhas de rede e ausência de links são apresentadas com acesso direto aos portais. Não há extração automática de PDF, conteúdo inventado, requisito ou data pré-preenchida nesta versão.
+
+Neste ambiente de nuvem, o acesso aos portais foi bloqueado pela política de saída. Os domínios necessários foram adicionados ao rascunho da configuração para revisão/publicação. O tratamento de indisponibilidade e o extrator com páginas de teste foram validados; a descoberta de um edital real ainda precisa de validação com acesso liberado. No computador local, a consulta depende da conectividade e das respostas dos portais.
+
+## Persistência e compatibilidade
+
+O estado fica no `localStorage`, chave `aprovape-v1`. A atualização preserva tarefas, assuntos e sessões existentes, inicializando as novas áreas quando ausentes. Dados válidos da primeira etapa são mantidos, inclusive eventuais exemplos já salvos; exclua os exemplos manualmente se ainda existirem.
+
+O backup versão 2 inclui tarefas, assuntos/anotações, sessões, metas, revisões e caderno de erros. Backups versão 1 continuam aceitos; nesse caso, as áreas ausentes começam vazias e as preferências voltam às sugestões iniciais. Importar substitui o estado após confirmação e reinicia o cronômetro. Uma sessão ainda não registrada não faz parte do backup.
+
+A validação verifica tipos, limites, datas, IDs, revisões vinculadas a assuntos existentes e consistência de tópicos compartilhados. Dados locais inválidos não são sobrescritos automaticamente. Falhas de gravação exibem aviso para exportação. Abas abertas no mesmo navegador recebem alterações pelo evento de armazenamento, mas atualizações simultâneas ainda podem seguir a regra de última gravação.
+
+O cronômetro continua entre navegação, recargas e fechamento da aba: pause durante intervalos. Registro mínimo de um minuto e máximo de 24 horas. Metas, gráficos, datas do planejamento e revisões usam o calendário local do navegador. A sequência de constância conta dias consecutivos com sessões registradas, incluindo uma sequência encerrada ontem enquanto hoje ainda não tem estudo.
+
+Não há sincronização entre aparelhos, autenticação ou banco remoto. Limpar os dados do navegador remove seu progresso; mantenha backups.
+
+## Qualidade e testes
 
 ```bash
 npm run typecheck
@@ -28,36 +79,27 @@ npm test
 npm run build
 ```
 
-Com o servidor de produção na porta 3000, `python tests/browser-smoke.py` executa o teste funcional. Esse teste opcional requer Python com Playwright e Chromium em `/usr/bin/chromium`, já disponíveis neste ambiente; não são dependências da aplicação. Exercita criação e conclusão de tarefas, tópicos compartilhados, recarga, cronômetro, registro de sessão, exportação/importação, métricas reais, telas de 320/360/390 px e dados locais corrompidos. Usa um contexto isolado e avança apenas o relógio de teste para registrar a sessão.
+Com o servidor de produção na porta 3000:
 
-## Funcionalidades
+```bash
+python tests/browser-smoke.py
+python tests/browser-stage2.py
+```
 
-- Dashboard calculado exclusivamente a partir dos dados do usuário.
-- Roadmaps para PMPE Soldado, CBMPE Soldado/Oficial e PCPE Agente, com disciplinas livres, checklist persistente e tópicos compartilhados entre concursos. Tópicos compartilhados contam uma vez no progresso geral.
-- Planejamento semanal com inclusão, conclusão e exclusão de tarefas.
-- Cronômetro persistente: o tempo continua entre navegação e recargas, inclusive com a aba fechada. Pause nos intervalos. Sessões registram minutos completos; mínimo de um minuto, máximo de 24 horas.
-- Histórico de sessões e gráfico dos últimos sete dias, usando o dia local do navegador.
-- Backup JSON versão 1 compatível com a etapa anterior. Importar substitui tarefas, tópicos e sessões e reinicia o cronômetro, após confirmação. Máximo de 10 MB, validação de campos, IDs e limites.
-- Interface escura, navegação adaptada para celular, foco visível, labels, Escape e contenção de foco no menu móvel.
+Os testes de navegador são opcionais para instalação local e exigem Python com Playwright e Chromium em `/usr/bin/chromium`, disponíveis na nuvem. Usam contextos isolados. Exercitam migração, persistência, metas, importação em lote, notas, revisões, geração sem duplicação, caderno de erros, sessões manuais, CSV, sincronização entre abas, backups e todas as telas em 320/360/390 px. Relógio e data de revisão são ajustados somente no contexto de teste.
 
-## Conteúdo e dados
-
-A instalação nova começa vazia. As sugestões de disciplinas são categorias de organização, não uma declaração do conteúdo exigido nos editais. Não foram adicionadas matérias, datas ou requisitos oficiais sem fontes verificadas. Cadastre assuntos do edital escolhido e compartilhe-os entre trilhas quando forem equivalentes. A carga de conteúdos oficiais com fontes/versionamento fica pendente de conferência dos editais.
-
-Dados existentes válidos da etapa anterior são preservados, incluindo eventuais tópicos e tarefas de exemplo já salvos. A aplicação não distingue retrospectivamente exemplos de dados pessoais: remova os exemplos manualmente se ainda existirem.
-
-O estado é persistido em `localStorage`, na chave `aprovape-v1`. A hidratação é explícita para evitar divergências entre servidor e navegador. Dados inválidos não são sobrescritos automaticamente; a interface permite importar backup ou apagar os dados com confirmação. Se o navegador impedir gravações ou atingir sua cota, um aviso solicita exportação. Faça backups: esta etapa não sincroniza dispositivos, não tem autenticação e não oferece banco remoto.
+A navegação preserva a tela ao recarregar e permite voltar/avançar. No celular há atalhos inferiores e menu com contenção de foco, Escape e bloqueio do fundo. Inputs têm labels, o gráfico oferece os valores em texto, a interface respeita redução de movimento e há um link para pular para o conteúdo.
 
 ## Arquitetura
 
-- `src/app/page.tsx`: shell de navegação e dashboard.
-- `src/components/roadmap.tsx`: organização e compartilhamento dos assuntos.
-- `src/components/planner.tsx`: tarefas semanais.
-- `src/components/study-timer.tsx`: sessão de foco e histórico.
-- `src/components/backup-panel.tsx`: exportação, importação e limpeza.
-- `src/lib/data.ts`: modelos e categorias.
-- `src/lib/store.ts`: ações, persistência e recuperação.
-- `src/lib/validation.ts`: validação compartilhada entre armazenamento e backup.
-- `tests/`: validação e teste funcional de navegador.
+- `src/app/page.tsx`: navegação, hidratação e sincronização entre abas.
+- `src/app/api/editais/route.ts`: consulta limitada às fontes oficiais.
+- `src/components/`: dashboard, roadmap/anotações, planejamento, metas, revisões, caderno de erros, cronômetro/registro manual, estatísticas, editais e backup.
+- `src/lib/data.ts`: modelos de dados e preferências.
+- `src/lib/store.ts`: ações e persistência compatível com a primeira etapa.
+- `src/lib/validation.ts`: validação do armazenamento e dos backups.
+- `src/lib/study.ts`: cálculo de estatísticas, calendário e geração do cronograma.
+- `src/lib/editais.ts`: catálogo de fontes e descoberta de links oficiais.
+- `tests/`: testes de regras e dos fluxos no navegador.
 
-Próximas etapas: conteúdos oficiais conferidos, módulos/aulas, questões/simulados, caderno de erros, revisões, metas e TAF. Supabase e tutor de IA seguem como integrações futuras. Nenhuma dessas funcionalidades futuras é simulada nesta versão.
+Próximas etapas: descoberta mais abrangente de editais e retificações, extração de PDF com conferência, módulos/aulas, banco de questões e simulados com conteúdo autorizado, TAF e integração Supabase/IA. Essas funcionalidades ainda não são oferecidas como concluídas.

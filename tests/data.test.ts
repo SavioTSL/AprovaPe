@@ -28,7 +28,7 @@ test("backup round trip preserves actual progress and sessions", () => {
   );
 });
 test("rejects unsupported versions and malformed data", () => {
-  assert.throws(() => parseBackup({ version: 2, data }));
+  assert.throws(() => parseBackup({ version: 3, data }));
   assert.throws(() =>
     parseBackup({
       version: 1,
