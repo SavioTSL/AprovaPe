@@ -1,4 +1,4 @@
-# AprovaPE — Etapa 2
+# AprovaPE — Etapa 2 · Importação de PDF
 
 Central pessoal de preparação para concursos de Pernambuco. Next.js App Router, React, TypeScript, Tailwind CSS, Zustand e Recharts. Evolução do projeto enviado em `AprovaPE_Etapa1.zip`, com compatibilidade para dados da primeira etapa.
 
@@ -40,7 +40,7 @@ npm run start -- --hostname 0.0.0.0
 
 ## Fluxo de preparação
 
-1. **Editais:** escolha o concurso para consultar links públicos nos portais oficiais e conferir cargo, ano, documento de abertura e retificações.
+1. **Editais:** escolha o concurso e envie o PDF do edital ou anexo. O texto é lido no navegador; confira a prévia, edite disciplinas/assuntos, desmarque itens de outros cargos e confirme antes de importar. Você também pode consultar os portais oficiais.
 2. **Importação em lote:** organize o conteúdo conferido em linhas `Disciplina | Assunto`. A prévia mostra o que será adicionado; assuntos existentes são preservados e duplicados são ignorados. Uma referência oficial opcional é salva nas anotações dos novos assuntos.
 3. **Metas:** defina concurso principal, metas diária/semanal, dias disponíveis, tempo diário e tamanho dos blocos. As metas iniciais (60 min/dia, 300 min/semana) são sugestões configuráveis, não estatísticas de estudo.
 4. **Planejamento:** gere blocos para os próximos sete dias. O plano considera somente assuntos pendentes do concurso principal, prioriza disciplinas com menos tempo registrado e distribui os assuntos em ciclos. Gerar novamente não duplica blocos. Tarefas manuais antigas são preservadas, não têm data e podem ter o checklist reiniciado separadamente.
@@ -54,9 +54,21 @@ npm run start -- --hostname 0.0.0.0
 
 A API `/api/editais?exam=...` consulta páginas públicas de portais oficiais da SDS/PE e das bancas AOCP ou Cebraspe. As requisições têm prazo e tamanho limitados, usam destinos fixos e não seguem redirecionamentos arbitrários. A descoberta aceita apenas links HTTPS de domínios oficiais conhecidos.
 
-Essa consulta **não é um buscador completo**, não verifica se o edital é o mais recente e pode não encontrar documentos em páginas internas ou carregadas por JavaScript. Resultados são candidatos para conferência, não conteúdo automaticamente aprovado. Falhas de rede e ausência de links são apresentadas com acesso direto aos portais. Não há extração automática de PDF, conteúdo inventado, requisito ou data pré-preenchida nesta versão.
+Essa consulta **não é um buscador completo**, não verifica se o edital é o mais recente e pode não encontrar documentos em páginas internas ou carregadas por JavaScript. Resultados são candidatos para conferência, não conteúdo automaticamente aprovado. Falhas de rede e ausência de links são apresentadas com acesso direto aos portais. A importação de PDF é independente dessa consulta e funciona localmente. Não há conteúdo inventado, requisito ou data pré-preenchida nesta versão.
 
 Neste ambiente de nuvem, o acesso aos portais foi bloqueado pela política de saída. Os domínios necessários foram adicionados ao rascunho da configuração para revisão/publicação. O tratamento de indisponibilidade e o extrator com páginas de teste foram validados; a descoberta de um edital real ainda precisa de validação com acesso liberado. No computador local, a consulta depende da conectividade e das respostas dos portais.
+
+## Importação de PDF
+
+Na área **Editais**, selecione o concurso e use **Selecionar edital PDF**. A biblioteca Mozilla PDF.js é carregada somente ao enviar um arquivo, com um worker servido pela própria aplicação, sem CDN. O PDF é processado no navegador e não é enviado ao servidor nem armazenado no backup.
+
+Limites: 25 MB, 150 páginas e 500 mil caracteres extraídos. A organização sugere até 500 assuntos de disciplinas reconhecidas a partir de títulos explícitos e itens numerados/separados por ponto e vírgula. Não usa IA nem inventa conteúdo. Editais com colunas, tabelas, vários cargos ou títulos incomuns podem precisar de ajustes: abra **Conferir e editar o texto extraído**, mantenha o trecho correto e use **Reorganizar assuntos pelo texto**, ou edite/adicione os itens diretamente na prévia.
+
+Confira disciplinas, assuntos e cargo, selecione os itens desejados e marque a confirmação antes de importar. O processo preserva assuntos/progresso existentes, ignora duplicados pelo par disciplina/assunto e salva o nome do arquivo como referência nas anotações. A prévia é temporária; só a importação confirmada persiste. Trocar de concurso solicita confirmação se houver uma prévia não importada.
+
+PDFs sem texto selecionável (digitalizados como imagem) precisam de OCR externo; OCR não está incluído. Arquivos protegidos por senha devem ser enviados sem proteção. PDFs inválidos, grandes demais ou sem texto recebem mensagens específicas. A leitura pode ser cancelada.
+
+Esta atualização também corrige o aviso indevido de dados inválidos em uma instalação vazia e filtra o planejamento/foco diário pelo concurso principal. Tarefas manuais sem concurso continuam visíveis e o histórico de todos os concursos permanece disponível pelo filtro.
 
 ## Persistência e compatibilidade
 
@@ -84,9 +96,10 @@ Com o servidor de produção na porta 3000:
 ```bash
 python tests/browser-smoke.py
 python tests/browser-stage2.py
+python tests/browser-pdf.py
 ```
 
-Os testes de navegador são opcionais para instalação local e exigem Python com Playwright e Chromium em `/usr/bin/chromium`, disponíveis na nuvem. Usam contextos isolados. Exercitam migração, persistência, metas, importação em lote, notas, revisões, geração sem duplicação, caderno de erros, sessões manuais, CSV, sincronização entre abas, backups e todas as telas em 320/360/390 px. Relógio e data de revisão são ajustados somente no contexto de teste.
+Os testes de navegador são opcionais para instalação local e exigem Python com Playwright e Chromium em `/usr/bin/chromium`, disponíveis na nuvem. Usam contextos isolados. Exercitam migração, persistência, metas, importação em lote, notas, revisões, geração sem duplicação, caderno de erros, sessões manuais, CSV, sincronização entre abas, backups e todas as telas em 320/360/390 px. Relógio e data de revisão são ajustados somente no contexto de teste. O teste de PDF usa documentos sintéticos em `tests/fixtures` (não são editais), incluindo texto, ausência de texto e proteção por senha, e verifica prévia editável, seleção, importação, referência, deduplicação, persistência, leitura sem requisições externas e layout móvel.
 
 A navegação preserva a tela ao recarregar e permite voltar/avançar. No celular há atalhos inferiores e menu com contenção de foco, Escape e bloqueio do fundo. Inputs têm labels, o gráfico oferece os valores em texto, a interface respeita redução de movimento e há um link para pular para o conteúdo.
 
@@ -102,4 +115,4 @@ A navegação preserva a tela ao recarregar e permite voltar/avançar. No celula
 - `src/lib/editais.ts`: catálogo de fontes e descoberta de links oficiais.
 - `tests/`: testes de regras e dos fluxos no navegador.
 
-Próximas etapas: descoberta mais abrangente de editais e retificações, extração de PDF com conferência, módulos/aulas, banco de questões e simulados com conteúdo autorizado, TAF e integração Supabase/IA. Essas funcionalidades ainda não são oferecidas como concluídas.
+Próximas etapas: descoberta mais abrangente de editais e retificações, OCR para PDFs digitalizados e melhoria da identificação de seções/colunas, módulos/aulas, banco de questões e simulados com conteúdo autorizado, TAF e integração Supabase/IA. Essas funcionalidades ainda não são oferecidas como concluídas.

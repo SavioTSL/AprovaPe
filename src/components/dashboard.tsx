@@ -40,7 +40,9 @@ export function Dashboard({ navigate }: { navigate: (view: View) => void }) {
   const due = s.reviews.filter((r) => r.dueDate <= today).length;
   const tasks = s.tasks.filter(
     (t) =>
-      !t.done && (t.date ? t.date <= today : t.day === new Date().getDay()),
+      !t.done &&
+      (!t.exam || t.exam === s.preferences.exam) &&
+      (t.date ? t.date <= today : t.day === new Date().getDay()),
   );
   return (
     <>

@@ -7,6 +7,7 @@ with sync_playwright() as p:
  page.on('pageerror',lambda e:errors.append(str(e)))
  page.goto('http://localhost:3000')
  page.get_by_role('heading',name='Visão geral',exact=True).wait_for()
+ assert page.locator('.error-banner').count()==0
  assert page.get_by_text('0h 00min',exact=True).first.is_visible()
  page.get_by_role('navigation',name='Navegação principal').get_by_role('button',name='Roadmap',exact=True).click()
  page.get_by_label('Nome do assunto').fill('Interpretação textual')

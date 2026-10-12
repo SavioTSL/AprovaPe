@@ -4,10 +4,12 @@ import { FileSearch, ExternalLink, Search } from "lucide-react";
 import { useStudy } from "@/lib/store";
 import { exams } from "@/lib/data";
 import { isOfficialUrl, officialSources, type Notice } from "@/lib/editais";
+import { PdfImporter } from "./pdf-importer";
 type Result = { notices: Notice[]; message: string; checkedAt: string };
 export function Editais() {
   const s = useStudy();
   const [exam, setExam] = useState(s.preferences.exam);
+  const [pdfDirty, setPdfDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
@@ -35,7 +37,7 @@ export function Editais() {
     } catch {
       if (!abort.signal.aborted)
         setError(
-          "A consulta não pôde ser concluída. Use as fontes oficiais abaixo.",
+          "A consulta não pôde ser concluída. Você pode enviar o PDF diretamente abaixo ou acessar as fontes oficiais.",
         );
     } finally {
       if (!abort.signal.aborted) setBusy(false);
@@ -65,9 +67,9 @@ export function Editais() {
         </div>
         <h2>Escolha seu concurso.</h2>
         <p>
-          Consulte publicações nos portais oficiais. Encontrar um link não
-          confirma que ele seja o edital mais recente ou o documento do seu
-          cargo.
+          Envie seu PDF ou consulte publicações nos portais oficiais. Encontrar
+          um link não confirma que ele seja o edital mais recente ou o documento
+          do seu cargo.
         </p>
       </section>
       <section className="panel p-6 space-y-4">
@@ -78,6 +80,14 @@ export function Editais() {
               className="field"
               value={exam}
               onChange={(e) => {
+                if (
+                  (content || pdfDirty) &&
+                  !confirm(
+                    "Trocar de concurso e descartar a prévia ainda não importada? Seu roadmap será preservado.",
+                  )
+                )
+                  return;
+                setPdfDirty(false);
                 controller.current?.abort();
                 setBusy(false);
                 setExam(e.target.value);
@@ -154,6 +164,15 @@ export function Editais() {
           ))}
         </div>
       </section>
+      <PdfImporter
+        key={exam}
+        exam={exam}
+        onDirtyChange={setPdfDirty}
+        onImported={() => {
+          s.updatePreferences({ ...s.preferences, exam });
+          window.location.hash = "roadmap";
+        }}
+      />
       <form
         className="panel p-6 space-y-4"
         onSubmit={(e) => {
@@ -182,10 +201,9 @@ export function Editais() {
           Importar conteúdo conferido em lote
         </h3>
         <p className="muted text-sm">
-          A extração automática de PDF ainda não está disponível. Depois de
-          conferir o edital, organize uma linha por assunto no formato
-          Disciplina | Assunto. O texto abaixo será pré-visualizado antes de
-          entrar no seu roadmap.
+          Você também pode colar o conteúdo conferido, sem enviar PDF. Organize
+          uma linha por assunto no formato Disciplina | Assunto. O texto abaixo
+          será pré-visualizado antes de entrar no seu roadmap.
         </p>
         <label className="form-label">
           Referência oficial (opcional)

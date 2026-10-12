@@ -549,3 +549,40 @@ aside nav {
 .skip-link:focus {
   transform: translateY(0);
 }
+.pdf-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  border: 1px dashed #5278ab;
+  border-radius: 16px;
+  padding: 28px 18px;
+  background: #132840;
+}
+.pdf-dropzone > svg {
+  color: #9fc7ff;
+}
+.pdf-dropzone input {
+  max-width: 100%;
+  font-size: 13px;
+  color: #b9cce7;
+}
+.pdf-dropzone input::file-selector-button {
+  border: 1px solid #5888c8;
+  background: #224c7c;
+  border-radius: 9px;
+  padding: 10px 14px;
+  color: white;
+  cursor: pointer;
+  margin-right: 10px;
+}
+.pdf-preview {
+  max-height: 650px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 3px;
+}
+.pdf-preview .form-label {
+  font-size: 12px;
+}

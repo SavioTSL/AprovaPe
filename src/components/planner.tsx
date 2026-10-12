@@ -13,7 +13,10 @@ export function Planner() {
   const today = dateKey(new Date());
   const end = addDays(today, 6);
   const visible = s.tasks.filter(
-    (t) => all || !t.date || (t.date >= today && t.date <= end),
+    (t) =>
+      all ||
+      ((!t.exam || t.exam === s.preferences.exam) &&
+        (!t.date || (t.date >= today && t.date <= end))),
   );
   return (
     <>

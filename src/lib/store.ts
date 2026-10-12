@@ -84,6 +84,7 @@ export const useStudy = create<Store>()(
   persist(
     (set, get) => ({
       importTopics: (items, exam, reference) => {
+        if (items.length > 500 || !exam.trim() || exam.length > 500) return 0;
         if (reference && reference.length > 2048) return 0;
         const s = get();
         const keys = new Set(
@@ -97,6 +98,7 @@ export const useStudy = create<Store>()(
             title = item.title.trim();
           const key = `${subject.toLowerCase()}|${title.toLowerCase()}`;
           if (
+            s.topics.length + added.length < 20000 &&
             !keys.has(key) &&
             subject &&
             title &&
@@ -327,6 +329,7 @@ export const useStudy = create<Store>()(
         timer: s.timer,
       }),
       merge: (saved, current) => {
+        if (saved === undefined || saved === null) return current;
         if (!isAppData(saved))
           return {
             ...current,
